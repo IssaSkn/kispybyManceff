@@ -6,7 +6,7 @@ else, and writes ~/.config/kispy/config.toml. Safe to run again at any time:
 every answer is pre-filled with what is already configured.
 """
 from __future__ import annotations
-import array, os, pathlib, shutil, subprocess, sys, tempfile, time, wave
+import array, os, pathlib, shlex, shutil, subprocess, sys, tempfile, time, wave
 from . import config, recorder, schedule, timetable, transcribe, ui
 
 PLIST = pathlib.Path.home() / "Library/LaunchAgents/com.kispy.watch.plist"
@@ -286,6 +286,14 @@ def _timetable_macos(cfg: dict) -> dict:
 def step_output(cfg: dict) -> dict:
     ui.heading("5/6", "Where your documents go")
     root = ui.ask("Folder for your courses", _short(cfg["output"]["root"]))
+    # Accept paths pasted from Terminal/Finder, where spaces may arrive escaped
+    # as "\\ ". shlex removes those shell escapes without changing normal paths.
+    try:
+        parsed = shlex.split(root)
+        if len(parsed) == 1:
+            root = parsed[0]
+    except ValueError:
+        pass
     path = pathlib.Path(root).expanduser()
     path.mkdir(parents=True, exist_ok=True)
     cfg["output"]["root"] = str(path)
