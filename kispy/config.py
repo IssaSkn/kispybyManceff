@@ -126,10 +126,19 @@ def write(cfg: dict) -> pathlib.Path:
         if isinstance(v, bool):
             return "true" if v else "false"
         if isinstance(v, list):
-            return "[" + ", ".join(f'"{x}"' for x in v) + "]"
+            return "[" + ", ".join(q(x) for x in v) + "]"
         if isinstance(v, (int, float)):
             return str(v)
-        return '"' + str(v).replace('"', '\\"') + '"'
+        s = str(v)
+        # TOML basic strings treat backslash as an escape introducer. Paths
+        # pasted from a shell can contain backslashes (e.g. "My\\ Folder"),
+        # so escape them before quotes/newlines.
+        s = (s.replace("\\", "\\\\")
+              .replace('"', '\\"')
+              .replace("\n", "\\n")
+              .replace("\r", "\\r")
+              .replace("\t", "\\t"))
+        return '"' + s + '"'
 
     text = f"""# Kispy — written by `kispy setup`, yours to edit.
 # Anything left out falls back to the built-in default.
