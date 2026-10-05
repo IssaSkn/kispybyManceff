@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>It records your lectures. It hands you back the written course.</strong><br>
-  <sub>A small, quiet agent for macOS — your timetable, your microphone, your Claude subscription.</sub>
+  <sub>A small, quiet agent for macOS — your timetable, your microphone, your ChatGPT plan.</sub>
 </p>
 
 <p align="center">
@@ -58,7 +58,7 @@ Documents/Courses/
 |---|---|
 | **A Mac** | Apple Silicon strongly preferred — transcription runs on the GPU. An Intel Mac works, several times slower. |
 | **macOS 14 or later** | Kispy uses AVFoundation, EventKit and Vision. |
-| **A Claude subscription** | Pro or Max. The documents are written by Claude through the Claude Code CLI, on *your* account. Kispy never asks you for an API key and never stores a credential. |
+| **An eligible ChatGPT plan** | Kispy writes through the OpenAI Codex CLI, signed in with ChatGPT on *your* account. No API key is required for the default setup. |
 | **About 5 GB free** | 3.1 GB of that is the speech model, which lives on your machine for good. |
 | **Homebrew** | [brew.sh](https://brew.sh) — the installer uses it for ffmpeg, tectonic and poppler. |
 
@@ -75,7 +75,7 @@ Kispy can **read your timetable off a screenshot**. See
 ## Install
 
 ```bash
-git clone https://github.com/Manceff/kispy.git
+git clone https://github.com/IssaSkn/kispybyManceff.git
 cd kispy
 ./install.sh
 ```
@@ -114,11 +114,12 @@ kispy setup
 It takes about five minutes. You can re-run it whenever you like; every answer is
 pre-filled with what is already configured.
 
-**1 — Connect Claude.** Kispy writes through the Claude Code CLI, signed in to
-your own subscription. If it is not installed the wizard offers to install it; if
-you are not signed in it tells you to run `claude`, type `/login`, and come back.
-It never asks you for a key. *(If you would rather use the API, export
-`ANTHROPIC_API_KEY` yourself and set `backend = "api"` in the config.)*
+**1 — Connect ChatGPT.** Kispy writes through the OpenAI Codex CLI, signed in to
+your ChatGPT account. If Codex is not installed the wizard offers to install it;
+if you are not signed in it tells you to run `codex login`, choose **Sign in with
+ChatGPT**, and come back. The default path needs no API key. *(If you would rather
+use the API, export `OPENAI_API_KEY` yourself and set `backend = "api"` in the
+config.)*
 
 **2 — Your microphone.** It lists every input macOS can see and asks which one is
 your Mac's own. This matters more than it looks: AVFoundation device *numbers*
@@ -178,7 +179,7 @@ Quitting leaves it running; the window is a view, not the program.
 | | |
 |---|---|
 | `kispy` | Open the app. |
-| `kispy setup` | Connect Claude, the microphone and your timetable. Re-runnable. |
+| `kispy setup` | Connect ChatGPT, the microphone and your timetable. Re-runnable. |
 | `kispy doctor` | Check every link in the chain and say which one is broken. |
 | `kispy start` | Start recording now. Needs a class in your timetable at this hour. |
 | `kispy force "Blockchain"` | Record a class the timetable does not know about — added late, mistyped in a shared feed, or simply missing. The lecture number and the folder still come from the calendar if the name is recognised. |
@@ -198,11 +199,12 @@ Worth reading once, properly.
 **Stays on your Mac, always.** The audio. Speech recognition runs locally through
 whisper.cpp on your GPU; no sound file is ever uploaded, to anyone.
 
-**Leaves your Mac.** The **text** of the transcript, and the text of any document
-you dropped into the session folder, are sent to Claude — that is what writes your
-document. This happens on your own subscription, through the Claude Code CLI.
-Nothing else is sent: not your calendar, not your file names, not your other
-courses.
+**Leaves your Mac.** The **text** of the transcript and the course material you
+explicitly add to a session are sent to OpenAI through Codex when the document is
+written. Image/PDF pages that need model-based reading are also sent for that
+purpose. If you import a timetable from a screenshot or PDF, that file is sent
+during the import step. Your macOS Calendar database, unrelated files and other
+course folders are not sent.
 
 **Destroyed as soon as the PDF exists.** The audio segments, the joined recording
 and the transcript, overwritten and unlinked. If the pipeline fails, the audio is
@@ -214,7 +216,7 @@ a transcript, a session or a speaker. A regex checks for it and the document is
 rewritten if a trace slips through.
 
 **Credentials.** Kispy never asks for a password or an API key and never stores
-one. It shells out to `claude`, which handles your sign-in itself.
+one in the default setup. It shells out to `codex`, which handles your ChatGPT sign-in.
 
 ---
 
@@ -278,7 +280,7 @@ Start with `kispy doctor`. It checks every link and names the broken one.
 | `timetable: macos: calendar access refused` | macOS has not been asked yet, or was refused | System Settings ▸ Privacy & Security ▸ Calendars, allow your terminal, then `kispy doctor`. Permission is per-application: granting Terminal does not grant iTerm |
 | A class is in Google Calendar but Kispy cannot see it | A shared calendar that is not ticked for sync | [calendar.google.com/calendar/syncselect](https://calendar.google.com/calendar/syncselect), tick it, wait a minute |
 | The timetable is hours out of date | You are on the `.ics` route and Google caches its exports | Add the calendar to the Calendar app instead and re-run `kispy setup` |
-| `Claude: run claude once, then /login` | The CLI is not signed in | Run `claude` in a terminal, type `/login` |
+| `ChatGPT/Codex` is not signed in | The Codex CLI has no active login | Run `codex login` and choose **Sign in with ChatGPT** |
 | The document is thinner than the lecture was | Usually a half-captured session | `kispy status` lists what the proofreading found, including "short for the session" |
 | It filed a course in a new folder instead of the existing one | Name matching was not confident | Edit `~/.config/kispy/folders.toml`: that table wins over everything |
 
@@ -297,7 +299,7 @@ flowchart LR
     REC --> SEG[segments<br/>~/.local/state]
     SEG --> WH[whisper.cpp<br/>large-v3 · Metal · local]
     DOC[Your own documents] --> SYN
-    WH --> SYN[Claude Opus<br/>writes the body]
+    WH --> SYN[ChatGPT via Codex<br/>writes the body]
     SYN --> TEX[LaTeX<br/>frozen preamble]
     TEX --> PDF[tectonic → PDF]
     PDF --> AUD[checks<br/>structure · typography · coverage]
@@ -334,9 +336,10 @@ More in [docs/how-it-works.md](docs/how-it-works.md).
 **Does it work if I close my laptop?** Recording: no — the Mac sleeps and the
 microphone dies. Everything after the recording: yes, it resumes on wake.
 
-**What does it cost?** Nothing beyond the Claude subscription you already have.
-Transcription is local and free. A three-hour lecture is a few minutes of model
-time.
+**What does it cost?** With the default Codex setup, usage comes from the allowance
+available on your eligible ChatGPT plan and is subject to that plan's limits.
+Transcription is local. If you switch to `backend = "api"`, OpenAI API usage is
+billed separately.
 
 **Can I use it in French, German, Spanish?** Yes — set the lecture language at
 setup. The document itself is written in English; change the first line of `RULES`
@@ -350,7 +353,7 @@ and the rest is yours.
 selected. Point it at an aggregate device or a loopback input and it will record
 what your Mac is playing.
 
-**Where do I report something?** [Issues](https://github.com/Manceff/kispy/issues).
+**Where do I report something?** [Issues](https://github.com/IssaSkn/kispybyManceff/issues).
 
 ---
 
@@ -361,4 +364,4 @@ MIT. See [LICENSE](LICENSE).
 Built on [whisper.cpp](https://github.com/ggml-org/whisper.cpp),
 [tectonic](https://tectonic-typesetting.github.io),
 [rich](https://github.com/Textualize/rich) and
-[Claude Code](https://claude.com/claude-code).
+[OpenAI Codex](https://github.com/openai/codex).
