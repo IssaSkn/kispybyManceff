@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Il enregistre tes cours. Il te rend le cours rédigé.</strong><br>
-  <sub>Un petit agent discret pour macOS — ton emploi du temps, ton micro, ton abonnement Claude.</sub>
+  <sub>Un petit agent discret pour macOS — ton emploi du temps, ton micro, ton abonnement ChatGPT.</sub>
 </p>
 
 <p align="center">
@@ -59,7 +59,7 @@ Documents/Cours/
 |---|---|
 | **Un Mac** | Apple Silicon de préférence — la transcription tourne sur le GPU. Un Mac Intel marche, plusieurs fois plus lentement. |
 | **macOS 14 ou plus** | Kispy utilise AVFoundation, EventKit et Vision. |
-| **Un abonnement Claude** | Pro ou Max. Les documents sont rédigés par Claude via le CLI Claude Code, sur *ton* compte. Kispy ne te demande jamais de clé d'API et ne stocke aucun identifiant. |
+| **Un abonnement ChatGPT éligible** | Kispy rédige via le CLI OpenAI Codex, connecté à ChatGPT sur *ton* compte. Aucune clé API n'est nécessaire dans le réglage par défaut. |
 | **5 Go de libre environ** | dont 3,1 Go pour le modèle de reconnaissance vocale, qui reste définitivement sur ta machine. |
 | **Homebrew** | [brew.sh](https://brew.sh) — l'installeur s'en sert pour ffmpeg, tectonic et poppler. |
 
@@ -77,7 +77,7 @@ calendrier, Kispy sait **lire ton emploi du temps sur une capture d'écran**. Vo
 ## Installation
 
 ```bash
-git clone https://github.com/Manceff/kispy.git
+git clone https://github.com/IssaSkn/kispybyManceff.git
 cd kispy
 ./install.sh
 ```
@@ -118,11 +118,12 @@ kispy setup
 Cinq minutes. Tu peux le relancer quand tu veux : chaque réponse est pré-remplie
 avec ce qui est déjà configuré.
 
-**1 — Connecter Claude.** Kispy rédige via le CLI Claude Code, connecté à ton
-propre abonnement. S'il n'est pas installé l'assistant propose de l'installer ; si
-tu n'es pas connecté il te dit de lancer `claude`, de taper `/login`, et de
-revenir. Il ne te demande jamais de clé. *(Si tu préfères l'API, exporte toi-même
-`ANTHROPIC_API_KEY` et mets `backend = "api"` dans la configuration.)*
+**1 — Connecter ChatGPT.** Kispy rédige via le CLI OpenAI Codex, connecté à ton
+compte ChatGPT. S'il n'est pas installé l'assistant propose de l'installer ; si tu
+n'es pas connecté il te dit de lancer `codex login`, de choisir **Sign in with
+ChatGPT**, puis de revenir. Aucune clé API n'est nécessaire par défaut. *(Si tu
+préfères l'API, exporte `OPENAI_API_KEY` et mets `backend = "api"` dans la
+configuration.)*
 
 **2 — Ton micro.** Il liste toutes les entrées que macOS voit et te demande
 laquelle est celle de ton Mac. C'est plus important que ça n'en a l'air : les
@@ -182,7 +183,7 @@ Quitter ne l'arrête pas : la fenêtre est une vue, pas le programme.
 | | |
 |---|---|
 | `kispy` | Ouvre l'app. |
-| `kispy setup` | Connecte Claude, le micro et l'emploi du temps. Relançable. |
+| `kispy setup` | Connecte ChatGPT, le micro et l'emploi du temps. Relançable. |
 | `kispy doctor` | Vérifie chaque maillon et dit lequel est cassé. |
 | `kispy start` | Démarre maintenant. Il faut un cours à cette heure dans ton emploi du temps. |
 | `kispy force "Blockchain"` | Enregistre un cours absent de l'agenda — ajouté tard, mal orthographié dans un flux partagé, ou simplement manquant. Le numéro de séance et le dossier viennent quand même du calendrier si le nom est reconnu. |
@@ -203,10 +204,12 @@ Quitter ne l'arrête pas : la fenêtre est une vue, pas le programme.
 via whisper.cpp sur ton GPU ; aucun fichier son n'est jamais envoyé à qui que ce
 soit.
 
-**Sort de ton Mac.** Le **texte** de la transcription, et le texte des documents
-que tu as déposés dans le dossier de séance, sont envoyés à Claude — c'est ce qui
-rédige ton document. Via ton propre abonnement, par le CLI Claude Code. Rien
-d'autre n'est envoyé : ni ton agenda, ni tes noms de fichiers, ni tes autres cours.
+**Sort de ton Mac.** Le **texte** de la transcription et les supports de cours que
+tu ajoutes volontairement à une séance sont envoyés à OpenAI via Codex pour
+rédiger le document. Les pages image/PDF qui nécessitent une lecture par modèle
+sont également envoyées. Si tu importes ton emploi du temps depuis une capture ou
+un PDF, ce fichier est envoyé pendant cette étape. La base de données Calendrier
+de macOS, les fichiers sans rapport et les autres dossiers de cours ne le sont pas.
 
 **Détruit dès que le PDF existe.** Les segments audio, l'enregistrement
 reconstitué et la transcription, écrasés puis supprimés. Si la chaîne échoue,
@@ -218,7 +221,7 @@ enregistrement, à une transcription, à une séance ou à un intervenant. Une
 expression régulière le vérifie, et le document est réécrit si une trace passe.
 
 **Identifiants.** Kispy ne demande jamais de mot de passe ni de clé d'API et n'en
-stocke aucun. Il appelle `claude`, qui gère la connexion lui-même.
+stocke aucun dans le réglage par défaut. Il appelle `codex`, qui gère la connexion ChatGPT.
 
 ---
 
@@ -282,7 +285,7 @@ Commence par `kispy doctor`. Il teste chaque maillon et nomme celui qui est cass
 | `timetable: macos: calendar access refused` | macOS n'a pas encore été sollicité, ou a été refusé | Réglages Système ▸ Confidentialité et sécurité ▸ Calendriers, autorise ton terminal, puis `kispy doctor`. L'autorisation est par application : autoriser Terminal n'autorise pas iTerm |
 | Un cours est dans Google Agenda mais Kispy ne le voit pas | Un agenda partagé non coché pour la synchro | [calendar.google.com/calendar/syncselect](https://calendar.google.com/calendar/syncselect), coche-le, attends une minute |
 | L'emploi du temps a plusieurs heures de retard | Tu es sur la voie `.ics` et Google met ses exports en cache | Ajoute plutôt l'agenda dans l'app Calendrier et relance `kispy setup` |
-| `Claude: run claude once, then /login` | Le CLI n'est pas connecté | Lance `claude` dans un terminal, tape `/login` |
+| `ChatGPT/Codex` n'est pas connecté | Le CLI Codex n'a pas de connexion active | Lance `codex login` puis choisis **Sign in with ChatGPT** |
 | Le document est plus maigre que le cours | En général une séance à moitié captée | `kispy status` liste ce que la relecture a trouvé, dont « short for the session » |
 | Il a rangé un cours dans un nouveau dossier au lieu de l'existant | L'appariement par nom n'était pas sûr | Édite `~/.config/kispy/folders.toml` : cette table l'emporte sur tout |
 
@@ -302,7 +305,7 @@ flowchart LR
     REC --> SEG[segments<br/>~/.local/state]
     SEG --> WH[whisper.cpp<br/>large-v3 · Metal · local]
     DOC[Tes propres documents] --> SYN
-    WH --> SYN[Claude Opus<br/>rédige le corps]
+    WH --> SYN[ChatGPT via Codex<br/>rédige le corps]
     SYN --> TEX[LaTeX<br/>préambule figé]
     TEX --> PDF[tectonic → PDF]
     PDF --> AUD[contrôles<br/>structure · typo · couverture]
@@ -341,9 +344,10 @@ Plus de détails dans [docs/how-it-works.md](docs/how-it-works.md).
 s'endort et le micro meurt. Pour tout ce qui vient après : oui, ça reprend au
 réveil.
 
-**Ça coûte combien ?** Rien de plus que l'abonnement Claude que tu as déjà. La
-transcription est locale et gratuite. Un cours de trois heures représente quelques
-minutes de modèle.
+**Ça coûte combien ?** Avec le réglage Codex par défaut, l'usage est prélevé sur
+le quota disponible de ton abonnement ChatGPT éligible, selon les limites de ce
+forfait. La transcription reste locale. Si tu passes sur `backend = "api"`,
+l'utilisation de l'API OpenAI est facturée séparément.
 
 **Je peux l'utiliser en français, en allemand ?** Oui — la langue des cours se
 règle au setup. Le document, lui, est rédigé en anglais ; change la première ligne
@@ -357,7 +361,7 @@ de `RULES` dans `kispy/synth.py` si tu veux autre chose.
 as choisie. Pointe-le sur un périphérique agrégé ou une entrée de type loopback et
 il enregistrera ce que ton Mac joue.
 
-**Où je signale un problème ?** [Issues](https://github.com/Manceff/kispy/issues).
+**Où je signale un problème ?** [Issues](https://github.com/IssaSkn/kispybyManceff/issues).
 
 ---
 
@@ -368,4 +372,4 @@ MIT. Voir [LICENSE](LICENSE).
 Construit sur [whisper.cpp](https://github.com/ggml-org/whisper.cpp),
 [tectonic](https://tectonic-typesetting.github.io),
 [rich](https://github.com/Textualize/rich) et
-[Claude Code](https://claude.com/claude-code).
+[OpenAI Codex](https://github.com/openai/codex).
