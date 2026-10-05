@@ -1,0 +1,101 @@
+%=======================================================================
+%  Kispy -- house style for a course document.
+%  Frozen on purpose: the model writes the body only, never the preamble,
+%  which is what keeps compile failures rare. Edit it to taste; keep the
+%  four boxes and \kispyrunning, the rest of Kispy relies on them.
+%=======================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{mathpazo}
+\usepackage[scaled=0.90]{helvet}
+\usepackage{amsmath,amssymb}
+\usepackage{microtype}
+\usepackage[a4paper,top=2.4cm,bottom=2.4cm,left=2.5cm,right=2.5cm]{geometry}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{titlesec}
+\usepackage{float}
+\usepackage{tikz}
+\usepackage[most]{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{needspace}
+\usepackage[hidelinks]{hyperref}
+\usepackage[htt]{hyphenat}   % un nom de fichier ou un identifiant peut se couper
+\emergencystretch=3em        % étirer les blancs plutôt que déborder dans la marge
+
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,calc,fit,backgrounds}
+\tcbuselibrary{skins,breakable}
+
+%----------------------------- colours --------------------------------
+\definecolor{ink}{HTML}{1B2430}
+\definecolor{slate}{HTML}{2F4A6D}
+\definecolor{slatelight}{HTML}{EAF0F7}
+\definecolor{teal}{HTML}{18706B}
+\definecolor{teallight}{HTML}{E5F2F1}
+\definecolor{amber}{HTML}{A9670C}
+\definecolor{amberlight}{HTML}{FBF1DF}
+\definecolor{plum}{HTML}{6A3D7C}
+\definecolor{plumlight}{HTML}{F2ECF6}
+\definecolor{rule}{HTML}{C9D3E0}
+\definecolor{grayish}{HTML}{5A6672}
+
+\hypersetup{colorlinks=true,linkcolor=slate,urlcolor=teal}
+
+%----------------------------- headings -------------------------------
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{slate}}{\thesection}{0.7em}{}
+  [\vspace{2pt}{\color{rule}\titlerule[0.9pt]}]
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{ink}}{\thesubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{20pt}{10pt}
+\titlespacing*{\subsection}{0pt}{14pt}{5pt}
+
+\newcommand{\kispyrunning}{}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\small\color{grayish}\kispyrunning}
+\fancyfoot[C]{\small\color{grayish}\thepage}
+
+%----------------------------- boxes ----------------------------------
+\newtcolorbox{defbox}[1]{%
+  enhanced,breakable,colback=slatelight,colframe=slate,
+  boxrule=0pt,leftrule=2.5pt,arc=1pt,left=8pt,right=8pt,top=6pt,bottom=6pt,
+  fonttitle=\bfseries\sffamily\small,coltitle=slate,
+  title={\MakeUppercase{#1}},attach title to upper={\par\medskip},
+  colbacktitle=slatelight,titlerule=0pt,boxed title style={empty}}
+
+\newtcolorbox{keybox}[1]{%
+  enhanced,breakable,colback=teallight,colframe=teal,
+  boxrule=0pt,leftrule=2.5pt,arc=1pt,left=8pt,right=8pt,top=6pt,bottom=6pt,
+  fonttitle=\bfseries\sffamily\small,coltitle=teal,
+  title={\MakeUppercase{#1}},attach title to upper={\par\medskip},
+  colbacktitle=teallight,titlerule=0pt,boxed title style={empty}}
+
+\newtcolorbox{warnbox}[1]{%
+  enhanced,breakable,colback=amberlight,colframe=amber,
+  boxrule=0pt,leftrule=2.5pt,arc=1pt,left=8pt,right=8pt,top=6pt,bottom=6pt,
+  fonttitle=\bfseries\sffamily\small,coltitle=amber,
+  title={\MakeUppercase{#1}},attach title to upper={\par\medskip},
+  colbacktitle=amberlight,titlerule=0pt,boxed title style={empty}}
+
+\newtcolorbox{exbox}[1]{%
+  enhanced,breakable,colback=plumlight,colframe=plum,
+  boxrule=0pt,leftrule=2.5pt,arc=1pt,left=8pt,right=8pt,top=6pt,bottom=6pt,
+  fonttitle=\bfseries\sffamily\small,coltitle=plum,
+  title={\MakeUppercase{#1}},attach title to upper={\par\medskip},
+  colbacktitle=plumlight,titlerule=0pt,boxed title style={empty}}
+
+\setlist[itemize]{leftmargin=1.3em,itemsep=2pt,topsep=4pt}
+\setlist[enumerate]{leftmargin=1.5em,itemsep=2pt,topsep=4pt}
+
+\newcommand{\term}[1]{\textbf{#1}}
+\renewcommand{\arraystretch}{1.25}
+
+%======================================================================

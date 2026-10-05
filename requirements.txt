@@ -1,0 +1,10 @@
+# Kispy runs on very little: a terminal UI, a calendar parser, and readers for
+# the documents you drop into a session folder.
+rich>=13.7
+icalendar>=6.0
+requests>=2.31
+pypdf>=4.2
+python-docx>=1.1
+python-pptx>=1.0
+# Only used if you set synthesis.backend = "api" instead of your subscription.
+anthropic>=0.40
