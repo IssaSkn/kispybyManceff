@@ -94,10 +94,20 @@ ok "python packages"
 
 # --------------------------------------------------------- native helpers ----
 step "Two small native helpers"
-swiftc -O -o "$BIN/kispy-cal" "$SRC/swift/kispy-cal.swift"
-ok "kispy-cal   reads the Calendar app (EventKit)"
-swiftc -O -o "$BIN/kispy-ocr" "$SRC/swift/kispy-ocr.swift"
-ok "kispy-ocr   offline OCR, as a fallback (Vision)"
+if swiftc -O -o "$BIN/kispy-cal" "$SRC/swift/kispy-cal.swift" 2>"$LIB/swift-cal.log"; then
+  ok "kispy-cal   reads the Calendar app (EventKit)"
+else
+  rm -f "$BIN/kispy-cal"
+  warn "kispy-cal could not be built — continuing without native Calendar access"
+  warn "your Apple Swift compiler/SDK may be out of sync; details: $LIB/swift-cal.log"
+fi
+if swiftc -O -o "$BIN/kispy-ocr" "$SRC/swift/kispy-ocr.swift" 2>"$LIB/swift-ocr.log"; then
+  ok "kispy-ocr   offline OCR, as a fallback (Vision)"
+else
+  rm -f "$BIN/kispy-ocr"
+  warn "kispy-ocr could not be built — continuing without the offline OCR fallback"
+  warn "model-based document reading still works through Codex"
+fi
 
 # ---------------------------------------------------------------- whisper ----
 step "Speech recognition (whisper.cpp)"
