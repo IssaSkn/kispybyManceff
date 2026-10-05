@@ -46,18 +46,18 @@ DEFAULTS: dict = {
         "threads": 0,          # 0 = one per performance core
     },
     "synthesis": {
-        "backend": "claude_cli",     # claude_cli (subscription) | api (ANTHROPIC_API_KEY)
-        "model": "claude-opus-5",
+        "backend": "codex_cli",      # codex_cli (ChatGPT sign-in) | api (OPENAI_API_KEY)
+        "model": "",                    # empty = Codex current default; API falls back to gpt-5.6
         "timeout_seconds": 2400,
     },
     "documents": {
-        "model": "claude-haiku-4-5",   # reads scans and handwritten notes
+        "model": "",                   # empty = Codex current default
         "timeout_seconds": 900,
     },
     "audit": {
         "enabled": True,       # structural checks: free, instant, never wrong
         "coverage": True,      # a second model reads the document against the material
-        "model": "claude-haiku-4-5",
+        "model": "",
         "timeout_seconds": 900,
     },
     "output": {
@@ -149,7 +149,7 @@ language = {q(t["language"])}   # the language spoken in your lectures
 model    = {q(tilde(t["model"]))}
 
 [synthesis]
-backend = {q(s["backend"])}   # claude_cli = your Claude subscription
+backend = {q(s["backend"])}   # codex_cli = your ChatGPT plan via Codex
 model   = {q(s["model"])}
 
 [output]

@@ -121,7 +121,7 @@ def coverage(transcript: str, tex: str, cfg: dict) -> list[str]:
     body = tex.split("\\begin{document}", 1)[-1]
     prompt = (f"{COVERAGE_PROMPT}\n=== Session material ===\n{transcript}"
               f"\n\n=== Document produced ===\n{body}")
-    model = cfg["audit"].get("model", "claude-haiku-4-5")
+    model = cfg["audit"].get("model", "")
     try:
         reply = synth.via_cli(prompt, model, cfg["audit"].get("timeout_seconds", 900))
     except Exception as exc:

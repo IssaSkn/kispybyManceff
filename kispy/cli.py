@@ -558,10 +558,10 @@ def doctor() -> int:
                          ("pdftoppm", "brew install poppler")):
         found = subprocess.run(["which", binary], capture_output=True).returncode == 0
         check(binary, found, "" if found else hint)
-    st = wizard.claude_state()
-    check("Claude", st == "ok",
-          {"ok": "", "not-installed": "npm install -g @anthropic-ai/claude-code",
-           "not-logged-in": "run `claude` once, then /login"}[st])
+    st = wizard.codex_state()
+    check("ChatGPT/Codex", st == "ok",
+          {"ok": "", "not-installed": "brew install --cask codex",
+           "not-logged-in": "run `codex login` and sign in with ChatGPT"}[st])
     check("output folder", pathlib.Path(cfg["output"]["root"]).exists(),
           cfg["output"]["root"].replace(str(pathlib.Path.home()), "~"))
     running = wizard.watchdog_running()          # optional: never a reason to fail
@@ -574,7 +574,7 @@ HELP = """\
 Kispy — records your lectures and hands you the written course.
 
   kispy                 open the app
-  kispy setup           connect Claude, your microphone and your timetable
+  kispy setup           connect ChatGPT, your microphone and your timetable
   kispy doctor          check everything is wired
 
   kispy start           start recording now (needs a class in your timetable)

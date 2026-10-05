@@ -40,7 +40,7 @@ folder.
 | `state.py` | One JSON file, written atomically. The job's entire memory. |
 | `pipeline.py` | What happens after the lecture, stage by stage, resumably. |
 | `transcribe.py` | whisper.cpp, and the per-course glossary. |
-| `synth.py` | Reading your documents, building the prompt, calling Claude. |
+| `synth.py` | Reading your documents, building the prompt, calling OpenAI Codex. |
 | `build.py` | Assembling the `.tex` and compiling it with tectonic. |
 | `audit.py` | The checks run on the finished document. |
 | `shred.py` | Overwriting and unlinking the working material. |
@@ -148,7 +148,7 @@ table, so a course cannot drift between two folders from one week to the next.
 | stop a kind of event being treated as a class | add a regex to `[calendar] exclude` |
 | fix a course filed in the wrong folder | edit `~/.config/kispy/folders.toml` |
 | stop mishearings of a name or acronym | add it to `~/.config/kispy/glossary/_global.txt` |
-| use the API instead of your subscription | export `ANTHROPIC_API_KEY`, set `backend = "api"` |
+| use the API instead of your subscription | export `OPENAI_API_KEY`, set `backend = "api"` |
 | turn off the model-based proofreading | `[audit] coverage = false` |
 
 After editing anything under `kispy/` in a clone, re-run `./install.sh` — it copies

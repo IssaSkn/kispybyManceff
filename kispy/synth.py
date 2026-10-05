@@ -1,11 +1,11 @@
 """Turn the session material into the body of a LaTeX document.
 
-Runs on the Claude Code subscription by default (`claude -p`, no API key, no
-per-token billing); falls back to the API when a key is present and the CLI is
-not usable.
+Runs through OpenAI Codex CLI by default, using the user's ChatGPT sign-in and
+plan allowance without asking Kispy for an API key. If the CLI is unavailable
+and OPENAI_API_KEY is set, Kispy can fall back to the OpenAI Responses API.
 """
 from __future__ import annotations
-import os, pathlib, re, subprocess, tempfile
+import os, pathlib, re, shutil, subprocess, tempfile
 from . import config
 
 MAX_DOC_CHARS = 120_000
@@ -73,26 +73,72 @@ photocopy or a screenshot. Transcribe them faithfully, page by page.
 """
 
 
-def read_by_model(path: pathlib.Path, cfg: dict) -> str:
-    """Hand the scan to a model rather than to an OCR engine.
+def _codex_cmd(model: str, sandbox: str = "read-only") -> list[str]:
+    cmd = [
+        "codex", "exec", "--ephemeral", "--skip-git-repo-check",
+        "--color", "never", "--sandbox", sandbox,
+    ]
+    if model:
+        cmd += ["--model", model]
+    cmd.append("-")
+    return cmd
 
-    An OCR engine matches shapes; a model reads the page and understands what it is
-    looking at -- measured on real handwriting, it turns "pupper diag / Lis cenique"
-    into a correct Cholesky decomposition. Falls back to Vision if this fails."""
+
+def _codex_error(r: subprocess.CompletedProcess, out: str) -> RuntimeError:
+    blob = ((r.stderr or "") + "\n" + out).lower()
+    if any(x in blob for x in ("not logged in", "login required", "codex login", "sign in")):
+        return RuntimeError("codex-cli-not-logged-in")
+    return RuntimeError(f"codex-cli-failed: {(r.stderr or out)[:400]}")
+
+
+def via_files_cli(prompt: str, model: str, timeout: int,
+                  files: list[pathlib.Path]) -> str:
+    """Run Codex on user-supplied documents in an isolated temporary workspace.
+
+    Files are copied into the workspace first. Images are also attached with
+    --image; PDFs and text documents can be inspected with read-only commands
+    while any conversion scratch files stay inside the temporary directory.
+    """
     with tempfile.TemporaryDirectory() as sandbox:
+        root = pathlib.Path(sandbox)
+        staged: list[pathlib.Path] = []
+        for i, src in enumerate(files):
+            dest = root / f"{i + 1:02d}-{src.name}"
+            shutil.copy2(src, dest)
+            staged.append(dest)
+
+        names = "\n".join(f"- {p.name}" for p in staged)
+        full_prompt = prompt + (
+            "\n\nThe files available in the current working directory are:\n" + names
+            if staged else ""
+        )
+        cmd = _codex_cmd(model, "workspace-write")
+        image_suffixes = {".png", ".jpg", ".jpeg", ".heic", ".webp"}
+        for p in staged:
+            if p.suffix.lower() in image_suffixes:
+                cmd[2:2] = ["--image", str(p)]
         try:
-            r = subprocess.run(
-                ["claude", "-p", "--output-format", "text",
-                 "--model", cfg["documents"].get("model", "claude-haiku-4-5"),
-                 "--allowedTools", "Read", "--add-dir", str(path.parent)],
-                input=READ_PROMPT.format(path=path), capture_output=True, text=True,
-                cwd=sandbox, timeout=cfg["documents"].get("timeout_seconds", 900))
-        except Exception:
-            return ocr(path)
+            r = subprocess.run(cmd, input=full_prompt, capture_output=True, text=True,
+                               cwd=root, timeout=timeout)
+        except FileNotFoundError:
+            raise RuntimeError("codex-cli-not-installed")
     out = (r.stdout or "").strip()
-    if r.returncode != 0 or len(out.split()) < 20 or "Not logged in" in out:
-        return ocr(path)
+    if r.returncode != 0 or not out:
+        raise _codex_error(r, out)
     return out
+
+
+def read_by_model(path: pathlib.Path, cfg: dict) -> str:
+    """Hand a scan to Codex rather than relying only on shape-based OCR."""
+    try:
+        return via_files_cli(
+            READ_PROMPT.format(path=path.name),
+            cfg["documents"].get("model", ""),
+            cfg["documents"].get("timeout_seconds", 900),
+            [path],
+        )
+    except Exception:
+        return ocr(path)
 
 
 def ocr(path: pathlib.Path) -> str:
@@ -203,43 +249,43 @@ def _split(reply: str) -> tuple[str, str]:
 
 
 def via_cli(prompt: str, model: str, timeout: int) -> str:
-    """The subscription path. Runs in an empty directory with every tool refused,
-    so it can only produce text."""
+    """Run a text-only Codex turn with no writable project workspace."""
     with tempfile.TemporaryDirectory() as sandbox:
-        r = subprocess.run(
-            ["claude", "-p", "--output-format", "text", "--model", model,
-             "--permission-mode", "default", "--disallowedTools",
-             "Bash", "Read", "Write", "Edit", "WebFetch", "WebSearch"],
-            input=prompt, capture_output=True, text=True, cwd=sandbox, timeout=timeout)
+        try:
+            r = subprocess.run(
+                _codex_cmd(model, "read-only"),
+                input=prompt, capture_output=True, text=True,
+                cwd=sandbox, timeout=timeout,
+            )
+        except FileNotFoundError:
+            raise RuntimeError("codex-cli-not-installed")
     out = (r.stdout or "").strip()
-    if "Please run /login" in out or "Not logged in" in out:
-        raise RuntimeError("claude-cli-not-logged-in")
     if r.returncode != 0 or not out:
-        raise RuntimeError(f"claude-cli-failed: {(r.stderr or out)[:400]}")
+        raise _codex_error(r, out)
     return out
 
 
 def via_api(prompt: str, model: str) -> str:
-    import anthropic
-    client = anthropic.Anthropic()
-    with client.messages.stream(
-        model=model, max_tokens=64000,
-        thinking={"type": "adaptive"},
-        output_config={"effort": "high"},
-        messages=[{"role": "user", "content": prompt}],
-    ) as stream:
-        message = stream.get_final_message()
-    if getattr(message, "stop_reason", None) == "refusal":
-        raise RuntimeError("the model declined to produce this document")
-    return "".join(b.text for b in message.content if b.type == "text").strip()
+    from openai import OpenAI
+    client = OpenAI()
+    response = client.responses.create(
+        model=model or "gpt-5.6",
+        reasoning={"effort": "high"},
+        max_output_tokens=64000,
+        input=prompt,
+    )
+    out = (response.output_text or "").strip()
+    if not out:
+        raise RuntimeError("the model returned no text")
+    return out
 
 
 def generate(prompt: str, cfg: dict) -> tuple[str, str]:
     s = cfg["synthesis"]
-    if s["backend"] == "claude_cli":
+    if s["backend"] == "codex_cli":
         try:
-            return _split(via_cli(prompt, s["model"], s["timeout_seconds"]))
+            return _split(via_cli(prompt, s.get("model", ""), s["timeout_seconds"]))
         except RuntimeError:
-            if not os.environ.get("ANTHROPIC_API_KEY"):
+            if not os.environ.get("OPENAI_API_KEY"):
                 raise
-    return _split(via_api(prompt, s["model"]))
+    return _split(via_api(prompt, s.get("model", "")))

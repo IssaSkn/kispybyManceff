@@ -10,7 +10,7 @@ this step is magic, and nothing leaves the Mac except the timetable itself.
 """
 from __future__ import annotations
 import datetime, json, pathlib, re, subprocess, tempfile
-from . import config, schedule, ui
+from . import config, schedule, synth, ui
 
 PATH = config.CONFIG_DIR / "timetable.json"
 READABLE = {".png", ".jpg", ".jpeg", ".heic", ".webp", ".pdf", ".txt", ".md", ".csv"}
@@ -70,25 +70,27 @@ def _json_from(reply: str) -> dict:
 
 
 def _read(source: str, files: list[pathlib.Path], cfg: dict) -> dict:
-    """Ask the model. Reading a file needs the Read tool and the folder allowed."""
-    cmd = ["claude", "-p", "--output-format", "text",
-           "--model", cfg["documents"].get("model", "claude-haiku-4-5")]
-    dirs = {str(f.parent.resolve()) for f in files}
-    if dirs:
-        cmd += ["--allowedTools", "Read"]
-        for d in dirs:
-            cmd += ["--add-dir", d]
-    else:
-        cmd += ["--disallowedTools", "Bash,Read,Write,Edit,WebFetch,WebSearch"]
-    with tempfile.TemporaryDirectory() as sandbox:
-        r = subprocess.run(cmd, input=PROMPT.format(source=source), capture_output=True,
-                           text=True, cwd=sandbox,
-                           timeout=cfg["documents"].get("timeout_seconds", 900))
-    out = (r.stdout or "").strip()
-    if "Not logged in" in out or "Please run /login" in out:
-        raise RuntimeError("Claude is not connected — run `claude` once, then /login")
-    if r.returncode != 0 or not out:
-        raise RuntimeError((r.stderr or out or "the model returned nothing")[:300])
+    """Ask Codex to turn a timetable into structured JSON."""
+    model = cfg["documents"].get("model", "")
+    timeout = cfg["documents"].get("timeout_seconds", 900)
+    try:
+        if files:
+            model_source = (
+                "Read these files from the current working directory:\n"
+                + "\n".join(f"  {f.name}" for f in files)
+            )
+            out = synth.via_files_cli(
+                PROMPT.format(source=model_source), model, timeout, files
+            )
+        else:
+            out = synth.via_cli(PROMPT.format(source=source), model, timeout)
+    except RuntimeError as exc:
+        code = str(exc)
+        if code in ("codex-cli-not-logged-in", "codex-cli-not-installed"):
+            raise RuntimeError(
+                "ChatGPT is not connected — install Codex and run `codex login`"
+            )
+        raise
     return _json_from(out)
 
 
