@@ -1,6 +1,6 @@
 """`kispy setup` — the one interactive moment in Kispy's life.
 
-Asks the five things it cannot work out on its own (Claude, microphone,
+Asks the five things it cannot work out on its own (ChatGPT/Codex, microphone,
 timetable, where documents go, whether to start by itself), checks everything
 else, and writes ~/.config/kispy/config.toml. Safe to run again at any time:
 every answer is pre-filled with what is already configured.
@@ -72,55 +72,56 @@ def _short(p) -> str:
 
 
 # --------------------------------------------------------------------------- 2
-def claude_state() -> str:
+def codex_state() -> str:
     """not-installed | not-logged-in | ok"""
-    if not _have("claude"):
+    if not _have("codex"):
         return "not-installed"
     try:
-        r = subprocess.run(["claude", "-p", "--output-format", "text", "say ok"],
-                           capture_output=True, text=True, timeout=120)
+        r = subprocess.run(["codex", "login", "status"],
+                           capture_output=True, text=True, timeout=30)
     except Exception:
         return "not-logged-in"
-    blob = (r.stdout or "") + (r.stderr or "")
-    if "Not logged in" in blob or "Please run /login" in blob or "/login" in blob:
-        return "not-logged-in"
-    return "ok" if r.returncode == 0 and (r.stdout or "").strip() else "not-logged-in"
+    return "ok" if r.returncode == 0 else "not-logged-in"
 
 
-def step_claude(cfg: dict) -> dict:
-    ui.heading("2/6", "Connect Claude")
-    ui.say("Kispy writes your documents with Claude, through the Claude Code CLI.")
-    ui.note("your own subscription — Kispy never asks you for a key and never "
-            "stores one")
+def step_codex(cfg: dict) -> dict:
+    ui.heading("2/6", "Connect ChatGPT")
+    ui.say("Kispy writes your documents through the OpenAI Codex CLI.")
+    ui.note("sign in with your ChatGPT account — Kispy never asks for or stores your password")
     ui.console.print()
 
     for _ in range(6):
         with ui.console.status("  [grey62]checking…[/]", spinner="dots"):
-            st = claude_state()
+            st = codex_state()
         if st == "ok":
-            ui.good("Claude is connected")
-            cfg["synthesis"]["backend"] = "claude_cli"
+            ui.good("ChatGPT is connected through Codex")
+            cfg["synthesis"]["backend"] = "codex_cli"
             return cfg
         if st == "not-installed":
-            ui.bad("the `claude` command is not installed")
-            if _have("npm") and ui.confirm("Install it now with npm?"):
-                subprocess.run(["npm", "install", "-g", "@anthropic-ai/claude-code"], check=False)
+            ui.bad("the `codex` command is not installed")
+            brew = _brew()
+            if brew and ui.confirm("Install Codex now with Homebrew?"):
+                subprocess.run([brew, "install", "--cask", "codex"], check=False)
                 continue
-            ui.note("install Node, then:  npm install -g @anthropic-ai/claude-code")
+            if _have("npm") and ui.confirm("Install Codex now with npm?"):
+                subprocess.run(["npm", "install", "-g", "@openai/codex"], check=False)
+                continue
+            ui.note("install it with:  brew install --cask codex")
+            ui.note("or:               npm install -g @openai/codex")
         else:
-            ui.warn("Claude is installed but not signed in")
+            ui.warn("Codex is installed but ChatGPT is not signed in")
             ui.console.print()
             ui.say("In another terminal window:", style="bold")
-            ui.note("1.  claude")
-            ui.note("2.  type  /login  and follow the browser")
+            ui.note("1.  codex login")
+            ui.note("2.  choose Sign in with ChatGPT and finish in the browser")
             ui.note("3.  come back here")
             ui.console.print()
         if not ui.confirm("Try again?"):
             break
 
     ui.console.print()
-    ui.warn("carrying on without Claude — recording will work, documents will not")
-    ui.note("you can also use the API instead: export ANTHROPIC_API_KEY in your shell "
+    ui.warn("carrying on without ChatGPT — recording will work, documents will not")
+    ui.note("you can also use the API instead: export OPENAI_API_KEY in your shell "
             "and set backend = \"api\" in the config")
     return cfg
 
@@ -376,7 +377,7 @@ def run(argv: list[str] | None = None) -> int:
     cfg = config.load()
     try:
         step_tools()
-        cfg = step_claude(cfg)
+        cfg = step_codex(cfg)
         cfg = step_microphone(cfg)
         cfg = step_timetable(cfg)
         cfg = step_output(cfg)
